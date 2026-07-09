@@ -16,6 +16,15 @@ FROM viewership;
 
 -- COMMAND ----------
 
+---Checking for duplicates in user profiles
+SELECT userID,
+    COUNT (*) AS duplicate_id
+FROM user_profiles
+GROUP BY userID
+HAVING count(*)>1
+
+-- COMMAND ----------
+
 ---Checking genders of viewers
 SELECT DISTINCT gender
 FROM user_profiles;
@@ -47,6 +56,24 @@ SELECT DISTINCT
                     WHEN race = ' ' THEN 'unknown' ---Replace the blanks with "Unknown"
                 ELSE race
                 END AS Clean_race
+FROM user_profiles;
+
+-- COMMAND ----------
+
+---Checking province of viewers
+
+SELECT DISTINCT province
+FROM user_profiles;
+
+-- COMMAND ----------
+
+---Cleaning province column
+SELECT DISTINCT 
+                CASE 
+                    WHEN province = 'None' THEN 'unknown' ---Replaces the value "None" with "Unknown"
+                    WHEN province = ' ' THEN 'unknown' ---Replace the blanks with "Unknown"
+                ELSE province
+                END AS Clean_province
 FROM user_profiles;
 
 -- COMMAND ----------
