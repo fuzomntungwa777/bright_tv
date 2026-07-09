@@ -21,7 +21,21 @@ SELECT userID,
     COUNT (*) AS duplicate_id
 FROM user_profiles
 GROUP BY userID
-HAVING count(*)>1
+HAVING count(*)>1;
+
+-- COMMAND ----------
+
+---Checking size of data
+SELECT COUNT(*),
+    COUNT (DISTINCT userID) AS num_subs
+FROM user_profiles;
+
+-- COMMAND ----------
+
+---Checking if userID has nulls
+SELECT count(*)
+FROM user_profiles
+WHERE userID IS NULL;
 
 -- COMMAND ----------
 
