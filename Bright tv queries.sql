@@ -226,8 +226,24 @@ FROM viewership;
 
 -- COMMAND ----------
 
----List of channels
-SELECT DISTINCT Channel2
+---List of channels with user count
+SELECT DISTINCT Channel2, 
+        COUNT(UserId0) as user_count 
+FROM viewership
+GROUP BY channel2;
+
+-- COMMAND ----------
+
+---Creating a channel description column
+SELECT 
+    CASE 
+        WHEN Channel2 IN ('ICC Cricket World Cup 2011','Supersport Live Events','SuperSport Blitz','SuperSport Live Events','Live on SuperSport', 'Wimbeldon') THEN 'Sports'
+        WHEN Channel2 IN ('Trace TV','Channel O','MK') THEN 'Music'
+        WHEN Channel2 IN ('Boomerang','Cartoon Network') THEN 'Kids' 
+        WHEN Channel2 = 'Break in transmission' THEN 'None'
+        WHEN Channel2 = 'CNN' THEN 'News'
+        ELSE 'Entertainment'
+    END AS Channel_description
 FROM viewership;
 
 -- COMMAND ----------
