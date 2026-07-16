@@ -226,10 +226,11 @@ FROM viewership;
 
 -- COMMAND ----------
 
----List of channels with user count
+---List of channels with user count and removing rows with break in transmission
 SELECT DISTINCT Channel2, 
         COUNT(UserId0) as user_count 
 FROM viewership
+WHERE Channel2 != 'Break in transmission' -- Ridding of "break in transmission" as it is not a channel
 GROUP BY channel2;
 
 -- COMMAND ----------
@@ -240,11 +241,11 @@ SELECT
         WHEN Channel2 IN ('ICC Cricket World Cup 2011','Supersport Live Events','SuperSport Blitz','SuperSport Live Events','Live on SuperSport', 'Wimbeldon') THEN 'Sports'
         WHEN Channel2 IN ('Trace TV','Channel O','MK') THEN 'Music'
         WHEN Channel2 IN ('Boomerang','Cartoon Network') THEN 'Kids' 
-        WHEN Channel2 = 'Break in transmission' THEN 'None'
         WHEN Channel2 = 'CNN' THEN 'News'
         ELSE 'Entertainment'
-    END AS Channel_description
-FROM viewership;
+    END AS channel_description
+FROM viewership
+WHERE Channel2 != 'Break in transmission'; 
 
 -- COMMAND ----------
 
@@ -253,7 +254,19 @@ SELECT
     CASE
         WHEN DAYNAME(RecordDate2) IN ('Sat','Sun') THEN 'Weekend'
     ELSE 'Weekday'
-    END AS Day_Classification
+    END AS day_classification
+FROM viewership;
+
+-- COMMAND ----------
+
+---Creating time of day classification
+SELECT DATE_FORMAT(RecordDate2, 'HH:mm:ss') AS watch_time,
+    CASE 
+        WHEN watch_time BETWEEN '00:00:00' AND '11:59:00' THEN 'Morning'
+        WHEN watch_time BETWEEN '12:00:00' AND '17:59:00' THEN 'Afternoon'
+        WHEN watch_time BETWEEN '18:00:00' AND '20:59:00' THEN 'Evening'
+        WHEN watch_time BETWEEN '21:00:00' AND '23:59:00' THEN 'Night'
+    END AS time_of_day
 FROM viewership;
 
 -- COMMAND ----------
@@ -268,12 +281,30 @@ FROM viewership;
         MONTHNAME(TO_DATE(RecordDate2)) AS watch_month, 
         YEAR(TO_DATE(RecordDate2)) AS watch_year, 
         DATE_FORMAT(`Duration 2`,'HH:mm:ss') as duration_time,
+        DATE_FORMAT(RecordDate2, 'HH:mm:ss') as watch_time,
+
         CASE 
             WHEN DAYNAME(RecordDate2) IN ('Sat', 'Sun') THEN '02. Weekend' 
             ELSE '01. Weekday' 
-        END AS day_classification
+        END AS day_classification,
+
+        CASE 
+            WHEN Channel2 IN ('ICC Cricket World Cup 2011','Supersport Live Events','SuperSport Blitz','SuperSport Live Events','Live on SuperSport', 'Wimbeldon') THEN 'Sports'
+            WHEN Channel2 IN ('Trace TV','Channel O','MK') THEN 'Music'
+            WHEN Channel2 IN ('Boomerang','Cartoon Network') THEN 'Kids' 
+            WHEN Channel2 = 'CNN' THEN 'News'
+        ELSE 'Entertainment'
+        END AS channel_description,
+
+        CASE 
+            WHEN watch_time BETWEEN '00:00:00' AND '11:59:00' THEN 'Morning'
+            WHEN watch_time BETWEEN '12:00:00' AND '17:59:00' THEN 'Afternoon'
+            WHEN watch_time BETWEEN '18:00:00' AND '20:59:00' THEN 'Evening'
+            WHEN watch_time BETWEEN '21:00:00' AND '23:59:00' THEN 'Night'
+        END AS time_of_day
+
     FROM viewership 
-    WHERE UserID0 IS NOT NULL 
+    WHERE UserID0 IS NOT NULL AND Channel2 != 'Break in transmission'
     GROUP BY ALL 
     ORDER BY watch_date DESC
 ---);
