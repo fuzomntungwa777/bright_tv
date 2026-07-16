@@ -153,7 +153,7 @@ SELECT userID,
         WHEN province = 'None' THEN 'Uncategorized' ---Replaces the value "None" with "Unknown"
         WHEN province = ' ' THEN 'Uncategorized' ---Replace the blanks with "Unknown"
         ELSE province
-    END AS Clean_province
+    END AS Clean_province,
 
     CASE 
         WHEN age BETWEEN 0 AND 3 THEN 'Infant and toddlers' 
@@ -167,12 +167,14 @@ SELECT userID,
     CASE
         WHEN (`Social Media Handle` IS NOT NULL) AND TRIM(`Social Media Handle` <> ' ') AND (`Social Media Handle` <> 'None') THEN 1
         ELSE 0
-    END AS sm_flag
+    END AS sm_flag,
 
      CASE
         WHEN (`Email` IS NOT NULL) AND TRIM(`Email` <> ' ') AND (`Email` <> 'None') THEN 1
         ELSE 0
     END AS email_flag
+
+FROM user_profiles
 );
 
 -- COMMAND ----------
@@ -271,17 +273,27 @@ FROM viewership;
 
 -- COMMAND ----------
 
+---Creating screen time bucket
+SELECT DATE_FORMAT(`Duration 2`,'HH:mm:ss') AS duration,
+    CASE
+        WHEN duration BETWEEN '00:05:00' AND '00:29:00' THEN 'Low Usage <30 Min'
+        WHEN duration BETWEEN '00:30:00' AND '00:59:59' THEN 'Medium Usage <60 Min'
+        WHEN duration > '00:59:59' THEN 'High Usage >60 Min'
+        ELSE 'No Usage'
+    END AS screen_time_bucket
+FROM viewership;
+
+-- COMMAND ----------
+
 ---Creating temporary table
----CREATE OR REPLACE TEMPORARY TABLE Viewerships AS (
+CREATE OR REPLACE TEMPORARY TABLE Viewerships AS (
     SELECT 
         COALESCE(UserID0, UserID4) AS UserID,
-        COUNT(DISTINCT UserID0) AS number_of_subs, 
         TO_DATE(RecordDate2) AS watch_date, 
         DAYNAME(TO_DATE(RecordDate2)) AS watch_day, 
         MONTHNAME(TO_DATE(RecordDate2)) AS watch_month, 
         YEAR(TO_DATE(RecordDate2)) AS watch_year, 
-        DATE_FORMAT(`Duration 2`,'HH:mm:ss') as duration_time,
-        DATE_FORMAT(RecordDate2, 'HH:mm:ss') as watch_time,
+        HOUR(RecordDate2) AS watch_hour,
 
         CASE 
             WHEN DAYNAME(RecordDate2) IN ('Sat', 'Sun') THEN '02. Weekend' 
@@ -296,29 +308,49 @@ FROM viewership;
         ELSE 'Entertainment'
         END AS channel_description,
 
+        DATE_FORMAT(RecordDate2, 'HH:mm:ss') AS watch_time,
         CASE 
             WHEN watch_time BETWEEN '00:00:00' AND '11:59:00' THEN 'Morning'
             WHEN watch_time BETWEEN '12:00:00' AND '17:59:00' THEN 'Afternoon'
             WHEN watch_time BETWEEN '18:00:00' AND '20:59:00' THEN 'Evening'
             WHEN watch_time BETWEEN '21:00:00' AND '23:59:00' THEN 'Night'
-        END AS time_of_day
+        END AS time_of_day,
+
+        DATE_FORMAT(`Duration 2`,'HH:mm:ss') AS duration,
+        CASE
+            WHEN duration BETWEEN '00:05:00' AND '00:29:00' THEN 'Low Usage <30 Min'
+            WHEN duration BETWEEN '00:30:00' AND '00:59:59' THEN 'Medium Usage <60 Min'
+            WHEN duration > '00:59:59' THEN 'High Usage >60 Min'
+            ELSE 'No Usage'
+        END AS screen_time_bucket
 
     FROM viewership 
     WHERE UserID0 IS NOT NULL AND Channel2 != 'Break in transmission'
-    GROUP BY ALL 
-    ORDER BY watch_date DESC
----);
+);
 
 -- COMMAND ----------
 
----Checking temporary table
-SELECT *
-FROM subs;
+---Joining temporary tables into one table
+SELECT Coalesce(A.userid,B.userid) AS sub_id,
+       watch_date,
+       watch_day,
+       watch_month,
+       day_classification,
+       channel_description,
+       time_of_day,
+       watch_hour,
+       screen_time_bucket,
+       duration,
+       age_groups,
+       email_flag,
+       sm_flag,
+       clean_province,
+       clean_race,
+       clean_gender
+FROM viewerships AS A
+LEFT JOIN user_profile AS B
+ON A.userid=B.userid;
 
 -- COMMAND ----------
 
-SELECT
-    SUM(number_of_subs) AS subs,
-    day_classification
-FROM Subs
-GROUP BY day_classification;
+
