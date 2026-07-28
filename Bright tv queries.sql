@@ -186,12 +186,6 @@ LIMIT 10;
 
 -- COMMAND ----------
 
----Determine number of subscribers
-SELECT COUNT(DISTINCT UserID0) AS number_of_subs
-FROM viewership;
-
--- COMMAND ----------
-
 ---Convert timestamp to date (YYYY-MM-DD)
 SELECT TO_DATE(RecordDate2) AS watch_date
 FROM viewership;
@@ -237,6 +231,13 @@ GROUP BY channel2;
 
 -- COMMAND ----------
 
+---Determine number of subscribers
+SELECT COUNT(DISTINCT UserID0) AS number_of_subs
+FROM viewership
+WHERE Channel2 != 'Break in transmission'; -- Ridding of "break in transmission" as it is not a channel
+
+-- COMMAND ----------
+
 ---Creating a channel description column
 SELECT 
     CASE 
@@ -247,7 +248,7 @@ SELECT
         ELSE 'Entertainment'
     END AS channel_description
 FROM viewership
-WHERE Channel2 != 'Break in transmission'; 
+WHERE Channel2 != 'Break in transmission'; -- Ridding of "break in transmission" as it is not a channel
 
 -- COMMAND ----------
 
@@ -350,7 +351,3 @@ SELECT Coalesce(A.userid,B.userid) AS sub_id,
 FROM viewerships AS A
 LEFT JOIN user_profile AS B
 ON A.userid=B.userid;
-
--- COMMAND ----------
-
-
